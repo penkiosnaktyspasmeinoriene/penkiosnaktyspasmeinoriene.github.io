@@ -1,0 +1,203 @@
+<body>
+
+<div id="startScreen">
+    <button class="my-btn" id="startButton"></button>
+    <button class="my-btn" id="exportSavefileButton"></button>
+</div>
+
+<canvas
+    class="game_canvas"
+    id="canvas"
+    oncontextmenu="event.preventDefault()"
+    tabindex="-1"
+    onmousedown="event.target.focus()"
+    onkeydown="event.preventDefault()"
+></canvas>
+
+<script type="text/javascript" src="odin.js"></script>
+
+<script>
+const startScreen = document.getElementById("startScreen");
+const startButton = document.getElementById("startButton");
+const exportSavefileButton = document.getElementById("exportSavefileButton");
+
+const lang = (navigator.language || "en").toLowerCase();
+switch (lang.split("-")[0]) {
+    case "lt": {
+        startButton.textContent          = "Pradėti žaidimą";
+        exportSavefileButton.textContent = "Eksportuoti 'savefile'";
+    } break;
+
+    case "it": {
+        startButton.textContent = "Iniziare il gioco";
+        exportSavefileButton.textContent = "Esportare 'savefile'";
+    } break;
+
+	default: {
+        startButton.textContent = "Start game";
+        exportSavefileButton.textContent = "Export 'savefile'";
+    } break;
+}
+
+let gameStarted = false;
+
+var odinMemoryInterface = new odin.WasmMemoryInterface();
+odinMemoryInterface.setIntSize(4);
+var odinImports = odin.setupDefaultImports(odinMemoryInterface);
+
+var Module = {
+
+    instantiateWasm: (imports, successCallback) => {
+
+        const newImports = {
+            ...odinImports,
+            ...imports
+        };
+
+        return WebAssembly.instantiateStreaming(
+            fetch("index.wasm"),
+            newImports
+        ).then(function(output) {
+
+            var e = output.instance.exports;
+
+            odinMemoryInterface.setExports(e);
+            odinMemoryInterface.setMemory(e.memory);
+
+            return successCallback(output.instance);
+        });
+    },
+
+    onRuntimeInitialized: () => {
+
+        var e = wasmExports;
+
+        // Wait for button instead of starting immediately.
+        startButton.onclick = async () => {
+
+            if (gameStarted) return;
+            gameStarted = true;
+
+            e._start();
+            e.main_start();
+
+            function send_resize() {
+                var canvas = document.getElementById("canvas");
+                e.web_window_size_changed(canvas.width, canvas.height);
+            }
+
+            window.addEventListener("resize", send_resize, true);
+
+            send_resize();
+
+            function do_main_update() {
+                if (!e.main_update()) {
+                    e.main_end();
+                    e._end();
+                    return;
+                }
+
+                requestAnimationFrame(do_main_update);
+            }
+
+            requestAnimationFrame(do_main_update);
+        };
+    
+        exportSavefileButton.onclick = async () => {
+            const base64 = localStorage.getItem("savefile");
+            if (!base64) return null;
+
+            const binary = atob(base64);
+            const bytes = new Uint8Array(binary.length);
+
+            for (let i = 0; i < binary.length; i++) {
+                bytes[i] = binary.charCodeAt(i);
+            }
+
+            const blob = new Blob([bytes], { type: "application/octet-stream" });
+            const a = document.createElement("a");
+            a.href = URL.createObjectURL(blob);
+            a.download = "savefile";
+            a.click();
+        }
+    },
+
+    print: (function() {
+        return function(text) {
+            console.log(text);
+        };
+    })(),
+
+    canvas: (function() {
+        return document.getElementById("canvas");
+    })()
+};
+</script>
+
+<script async type="text/javascript" src="index.js"></script>
+
+<style>
+html, body {
+    margin:0;
+    width:100%;
+    height:100%;
+    overflow:hidden;
+    background:#111;
+}
+
+canvas {
+    width:100%;
+    height:100%;
+    display:block;
+}
+
+#startScreen {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    flex-direction: column;   /* <-- add this */
+    justify-content: center;
+    align-items: center;
+    gap: 10px;                /* optional, replaces margin-bottom */
+    background: #111;
+    z-index: 1000;
+}
+.my-btn {
+  display: block; /* Forces them to stack vertically */
+  margin-bottom: 10px; /* Adds space beneath each button */
+}
+
+#startButton {
+    font-size:32px;
+    padding:20px 48px;
+    border:none;
+    border-radius:12px;
+    background:#8200c2ff;
+    color:white;
+    cursor:pointer;
+}
+
+#startButton:hover {
+    background:rgb(77, 0, 115);
+}
+
+#exportSavefileButton {
+    font-size:32px;
+    padding:20px 48px;
+    border:none;
+    border-radius:12px;
+    background:#8200c2ff;
+    color:white;
+    cursor:pointer;
+}
+
+#exportSavefileButton:hover {
+    background:rgb(77, 0, 115);
+}
+
+canvas:focus {
+    outline: none;
+}
+</style>
+
+</body>
