@@ -43,7 +43,6 @@ async function hasWebGPU() {
     if (!("gpu" in navigator)) {
         return false;
     }
-    console.log("wow, i hate gkithub!")
 
     const adapter = await navigator.gpu.requestAdapter();
     return adapter !== null;
