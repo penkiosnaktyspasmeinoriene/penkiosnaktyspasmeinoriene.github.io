@@ -39,6 +39,22 @@ switch (lang.split("-")[0]) {
     } break;
 }
 
+async function hasWebGPU() {
+    if (!("gpu" in navigator)) {
+        return false;
+    }
+
+    const adapter = await navigator.gpu.requestAdapter();
+    return adapter !== null;
+}
+
+//if (!(await hasWebGPU())) {
+//    alert(
+//        "WebGPU is disabled or unavailable.\n\n" +
+//        "For the best performance, please enable WebGPU in your browser settings or use a browser that supports it."
+//    );
+//}
+
 let gameStarted = false;
 
 var odinMemoryInterface = new odin.WasmMemoryInterface();
@@ -77,6 +93,9 @@ var Module = {
 
             if (gameStarted) return;
             gameStarted = true;
+
+            startScreen.style.display = "none";
+    
 
             e._start();
             e.main_start();
@@ -194,7 +213,6 @@ canvas {
 #exportSavefileButton:hover {
     background:rgb(77, 0, 115);
 }
-
 canvas:focus {
     outline: none;
 }
