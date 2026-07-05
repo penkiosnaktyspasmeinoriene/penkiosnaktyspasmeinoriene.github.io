@@ -1,8 +1,16 @@
+<link rel="icon" type="image/png" href="favicon/favicon-96x96.png" sizes="96x96" />
+<link rel="icon" type="image/svg+xml" href="favicon/favicon.svg" />
+<link rel="shortcut icon" href="favicon/favicon.ico" />
+<link rel="apple-touch-icon" sizes="180x180" href="favicon/apple-touch-icon.png" />
+<meta charset="utf-8" name="apple-mobile-web-app-title" content="PNpM"/>
+<link rel="manifest" href="favicon/site.webmanifest" />
+
 <body>
 
 <div id="startScreen">
     <button class="my-btn" id="startButton"></button>
     <button class="my-btn" id="exportSavefileButton"></button>
+    <button class="my-btn" id="loadSavefileButton"></button>
 </div>
 
 <canvas
@@ -20,22 +28,26 @@
 const startScreen = document.getElementById("startScreen");
 const startButton = document.getElementById("startButton");
 const exportSavefileButton = document.getElementById("exportSavefileButton");
+const loadSavefileButton = document.getElementById("loadSavefileButton");
 
 const lang = (navigator.language || "en").toLowerCase();
 switch (lang.split("-")[0]) {
     case "lt": {
         startButton.textContent          = "Pradėti žaidimą";
         exportSavefileButton.textContent = "Eksportuoti 'savefile'";
+        loadSavefileButton.textContent   = "Įkrauti 'savefile'";
     } break;
 
     case "it": {
-        startButton.textContent = "Iniziare il gioco";
+        startButton.textContent          = "Iniziare il gioco";
         exportSavefileButton.textContent = "Esportare 'savefile'";
+        loadSavefileButton.textContent   = "Caricare 'savefile'";
     } break;
 
 	default: {
-        startButton.textContent = "Start game";
+        startButton.textContent          = "Start game";
         exportSavefileButton.textContent = "Export 'savefile'";
+        loadSavefileButton.textContent   = "Load 'savefile'";
     } break;
 }
 
@@ -47,6 +59,13 @@ async function hasWebGPU() {
     const adapter = await navigator.gpu.requestAdapter();
     return adapter !== null;
 }
+
+//if (!(await hasWebGPU())) {
+//    alert(
+//        "WebGPU is disabled or unavailable.\n\n" +
+//        "For the best performance, please enable WebGPU in your browser settings or use a browser that supports it."
+//    );
+//}
 
 let gameStarted = false;
 
@@ -131,6 +150,32 @@ var Module = {
             a.href = URL.createObjectURL(blob);
             a.download = "savefile";
             a.click();
+        };
+
+        loadSavefileButton.onclick = async () => {
+            const input = document.createElement("input");
+            input.type = "file";
+            input.accept = "*/*";
+
+            input.onchange = async (event) => {
+                const file = event.target.files[0];
+                if (!file) return;
+
+                const buffer = await file.arrayBuffer();
+                const bytes = new Uint8Array(buffer);
+
+                if (localStorage.getItem("savefile") !== null) {
+                    if (!confirm("A save file already exists. Overwrite it?")) {
+                        return;
+                    }
+                }
+
+                const base64 = btoa(String.fromCharCode(...bytes));
+                localStorage.setItem("savefile", base64);
+                alert("Save file imported successfully.");
+            };
+
+            input.click();
         }
     },
 
@@ -206,6 +251,21 @@ canvas {
 #exportSavefileButton:hover {
     background:rgb(77, 0, 115);
 }
+
+#loadSavefileButton {
+    font-size:32px;
+    padding:20px 48px;
+    border:none;
+    border-radius:12px;
+    background:#8200c2ff;
+    color:white;
+    cursor:pointer;
+}
+
+#loadSavefileButton:hover {
+    background:rgb(77, 0, 115);
+}
+
 canvas:focus {
     outline: none;
 }
