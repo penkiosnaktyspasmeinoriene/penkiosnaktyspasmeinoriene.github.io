@@ -60,6 +60,13 @@ async function hasWebGPU() {
     return adapter !== null;
 }
 
+//if (!(await hasWebGPU())) {
+//    alert(
+//        "WebGPU is disabled or unavailable.\n\n" +
+//        "For the best performance, please enable WebGPU in your browser settings or use a browser that supports it."
+//    );
+//}
+
 let gameStarted = false;
 
 var odinMemoryInterface = new odin.WasmMemoryInterface();
